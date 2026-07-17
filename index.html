@@ -3,36 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 影片處理系統</title>
-  
+  <title>影片轉幀工具</title>
   <link rel="stylesheet" href="style.css">
-  
-  <script type="module">
-    import { client } from "https://cdn.jsdelivr.net/npm/@gradio/client/+esm";
-    window.gradioClient = client;
-  </script>
 </head>
 <body>
 
 <div class="container">
-  <header class="header">
-    <h1>影片處理系統</h1>
-    <p>拖曳或選擇影片上傳至 Hugging Face 後端處理</p>
-  </header>
-  
-  <div class="drop-zone" id="drop-zone">
-    <div class="drop-zone-icon">🎬</div>
-    <div class="drop-zone-text">
-      將影片拖曳至此，或 <span>點擊選擇檔案</span>
-    </div>
-    <input type="file" id="file-input" accept="video/*">
+  <div id="input-section" class="card">
+    <h2>影片轉幀處理器</h2>
+    <p>請選擇要處理的影片檔案：</p>
+    <input type="file" id="video-input" accept="video/*">
+    <br><br>
+    <button id="submit-btn">開始處理</button>
+    <p id="status-text" class="status"></p>
   </div>
   
-  <div class="file-info" id="file-info"></div>
-  
-  <button class="btn-submit" id="submit-btn" disabled>開始處理影片</button>
-  
-  <div class="result-box" id="result-box" style="display: none;"></div>
+  <div id="output-section" class="card hidden">
+    <h2>處理完成！</h2>
+    <p>您的影片幀壓縮包已順利生成：</p>
+    <a id="download-btn" class="btn-download" href="#" download="frames.zip">下載 .ZIP 壓縮檔</a>
+    <br><br>
+    <button id="reset-btn" class="btn-secondary">處理下一部影片</button>
+  </div>
 </div>
 
 <script src="script.js"></script>

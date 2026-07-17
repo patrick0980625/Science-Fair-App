@@ -1,74 +1,63 @@
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file-input');
-const fileInfo = document.getElementById('file-info');
-const submitBtn = document.getElementById('submit-btn');
-const resultBox = document.getElementById('result-box');
+const RENDER_API_URL = "https://science-fair-app-2pzk.onrender.com/process-video";
 
-let selectedFile = null;
+const inputSection = document.getElementById("input-section");
+const outputSection = document.getElementById("output-section");
+const videoInput = document.getElementById("video-input");
+const submitBtn = document.getElementById("submit-btn");
+const statusText = document.getElementById("status-text");
+const downloadBtn = document.getElementById("download-btn");
+const resetBtn = document.getElementById("reset-btn");
 
-// 點擊區域觸發選擇檔案
-dropZone.addEventListener('click', () => fileInput.click());
-
-// 選擇檔案事件
-fileInput.addEventListener('change', (e) => {
-  if (e.target.files.length > 0) {
-    handleFile(e.target.files[0]);
+submitBtn.addEventListener("click", async () => {
+  const file = videoInput.files[0];
+  if (!file) {
+    alert("請先選擇影片檔案！");
+    return;
   }
-});
 
-// 拖曳相關事件
-dropZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  dropZone.classList.add('drag-over');
-});
+  // 1. 打包檔案格式
+  const formData = new FormData();
+  formData.append("file", file);
 
-['dragleave', 'dragend'].forEach(type => {
-  dropZone.addEventListener(type, () => dropZone.classList.remove('drag-over'));
-});
-
-dropZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
-
-  if (e.dataTransfer.files.length > 0) {
-    const file = e.dataTransfer.files[0];
-    if (file.type.startsWith('video/')) {
-      handleFile(file);
-    } else {
-      alert('請上傳有效的影片檔案！');
-    }
-  }
-});
-
-// 處理選擇檔案
-function handleFile(file) {
-  selectedFile = file;
-  fileInfo.textContent = `已選擇：${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
-  submitBtn.disabled = false;
-}
-
-// 送出到 Hugging Face Space 後端
-submitBtn.addEventListener('click', async () => {
-  if (!selectedFile) return;
-
+  // 2. 更新 UI 狀態為載入中
   submitBtn.disabled = true;
-  submitBtn.textContent = '處理中，請稍候...';
-  resultBox.style.display = 'none';
+  statusText.innerText = "影片上傳與處理中...（若伺服器休眠，第一次需等待約 30 秒喚醒）";
 
   try {
-    // ⚠️ 替換成您的 帳號/Space名稱 (例如 "username/my-video-app")
-    const app = await window.gradioClient("YOUR_HF_USERNAME/YOUR_SPACE_NAME");
+    // 3. 發送 API 請求給 Render 後端
+    const response = await fetch(RENDER_API_URL, {
+      method: "POST",
+      body: formData
+    });
 
-    // 傳送影片資料給 Gradio 的 /predict 端點
-    const result = await app.predict("/predict", [selectedFile]);
+    if (!response.ok) {
+      throw new Error(`伺服器回應錯誤 (狀態碼: ${response.status})`);
+    }
 
-    resultBox.style.display = 'block';
-    resultBox.textContent = "處理完成！後端回傳：\n" + JSON.stringify(result.data, null, 2);
+    // 4. 接收回傳的 ZIP 檔並轉換成可下載的 Blob 連結
+    const blob = await response.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+
+    // 5. 將下載網址綁定給「下載按鈕」
+    downloadBtn.href = downloadUrl;
+
+    // 6. 畫面跳轉：隱藏輸入區塊，顯示輸出區塊
+    inputSection.classList.add("hidden");
+    outputSection.classList.remove("hidden");
+
   } catch (error) {
-    console.error("呼叫 HF Space 失敗:", error);
-    alert("處理過程發生錯誤，請查看 Console 訊息。");
+    console.error("Error:", error);
+    alert("處理失敗，請確認 Render 後端運作正常或查看開發者工具主機日誌。");
+    statusText.innerText = "";
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = '開始處理影片';
   }
+});
+
+// 重置按鈕：清空檔案並回到上傳畫面
+resetBtn.addEventListener("click", () => {
+  videoInput.value = "";
+  statusText.innerText = "";
+  outputSection.classList.add("hidden");
+  inputSection.classList.remove("hidden");
 });
