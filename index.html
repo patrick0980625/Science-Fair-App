@@ -1,10 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>$Title$</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 影片處理系統</title>
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <script type="module">
+    import { client } from "https://cdn.jsdelivr.net/npm/@gradio/client/+esm";
+    window.gradioClient = client;
+  </script>
 </head>
 <body>
-$END$
+
+<div class="container">
+  <header class="header">
+    <h1>影片處理系統</h1>
+    <p>拖曳或選擇影片上傳至 Hugging Face 後端處理</p>
+  </header>
+  
+  <div class="drop-zone" id="drop-zone">
+    <div class="drop-zone-icon">🎬</div>
+    <div class="drop-zone-text">
+      將影片拖曳至此，或 <span>點擊選擇檔案</span>
+    </div>
+    <input type="file" id="file-input" accept="video/*">
+  </div>
+  
+  <div class="file-info" id="file-info"></div>
+  
+  <button class="btn-submit" id="submit-btn" disabled>開始處理影片</button>
+  
+  <div class="result-box" id="result-box" style="display: none;"></div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
