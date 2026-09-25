@@ -12,21 +12,28 @@
   <div id="input-section" class="card">
     <h2>影片轉幀處理器</h2>
     <p>請選擇要處理的影片檔案：</p>
-    <input type="file" id="video-input" accept="video/*">
-    <br><br>
+    
+    <label class="upload-dropzone">
+      <div class="upload-icon">📁</div>
+      <span id="file-name-text">點擊或拖曳影片至此處</span>
+      <input type="file" id="video-input" accept="video/*">
+    </label>
+    
     <button id="submit-btn">開始處理</button>
-    <p id="status-text" class="status"></p>
+    
+    <div class="status-container">
+      <div id="loading-spinner" class="spinner hidden"></div>
+      <p id="status-text" class="status"></p>
+    </div>
   </div>
   
   <div id="output-section" class="card hidden">
     <h2>處理完成！</h2>
     <p>您的影片幀壓縮包已順利生成：</p>
     <a id="download-btn" class="btn-download" href="#" download="frames.zip">下載 .ZIP 壓縮檔</a>
-    <br><br>
+    <br>
     <button id="reset-btn" class="btn-secondary">處理下一部影片</button>
   </div>
-</div>
-
-<script src="script.js"></script>
+</div> <script src="script.js"></script>
 </body>
 </html>
