@@ -73,7 +73,6 @@ class BladeAnalyzer:
         output_dir = os.path.join(output_base_dir, 'clean')
         os.makedirs(output_dir, exist_ok=True)
 
-        frame_idx = 0
         saved_count = 0
         hub_history = []
 
@@ -84,46 +83,56 @@ class BladeAnalyzer:
             if not ret:
                 break
 
-            results = self.model.predict(frame, imgsz=1024, conf=0.45, verbose=False)
-            obbs = results[0].obb.xyxyxyxy.cpu().numpy()
+            results = self.model.predict(
+                source=video_path,
+                stream=True,
+                imgsz=320,
+                conf=0.25,
+                device='cpu',
+                verbose=True
+            )
 
-            if len(obbs) != 3:
-                frame_idx += 1
-                continue
+            for frame_idx, result in enumerate(results):
+                frame = result.orig_img
 
-            blades = [self.get_mid_points(obb) for obb in obbs]
+                if result.obb is None:
+                    continue
 
-            min_perimeter = float('inf')
-            inside_nodes = None
-            for p0, p1, p2 in itertools.product(blades[0], blades[1], blades[2]):
-                perimeter = np.linalg.norm(p0 - p1) + np.linalg.norm(p0 - p2) + np.linalg.norm(p1 - p2)
-                if perimeter < min_perimeter:
-                    min_perimeter = perimeter
-                    inside_nodes = (p0, p1, p2)
+                obbs = results[0].obb.xyxyxyxy.cpu().numpy()
 
-            if inside_nodes is None:
-                frame_idx += 1
-                continue
+                if len(obbs) != 3:
+                    continue
 
-            current_hub = np.mean(inside_nodes, axis=0)
-            hub_history.append(current_hub)
+                blades = [self.get_mid_points(obb) for obb in obbs]
 
-            if len(hub_history) > 50:
-                hub_history = hub_history[-50:]
+                min_perimeter = float('inf')
+                inside_nodes = None
+                for p0, p1, p2 in itertools.product(blades[0], blades[1], blades[2]):
+                    perimeter = np.linalg.norm(p0 - p1) + np.linalg.norm(p0 - p2) + np.linalg.norm(p1 - p2)
+                    if perimeter < min_perimeter:
+                        min_perimeter = perimeter
+                        inside_nodes = (p0, p1, p2)
 
-            stable_hub = np.median(hub_history, axis=0)
+                if inside_nodes is None:
+                    frame_idx += 1
+                    continue
 
-            res = self.check_straight(blades, obbs, stable_hub)
+                current_hub = np.mean(inside_nodes, axis=0)
+                hub_history.append(current_hub)
 
-            if res is None:
-                frame_idx += 1
-                continue
+                if len(hub_history) > 50:
+                    hub_history = hub_history[-50:]
 
-            saved_count += 1
-            clean_path = os.path.join(output_dir, f"frame_{frame_idx:05d}.jpg")
-            cv2.imwrite(clean_path, frame)
+                stable_hub = np.median(hub_history, axis=0)
 
-            frame_idx += 1
+                res = self.check_straight(blades, obbs, stable_hub)
+
+                if res is None:
+                    continue
+
+                saved_count += 1
+                clean_path = os.path.join(output_dir, f"frame_{frame_idx:05d}.jpg")
+                cv2.imwrite(clean_path, frame)
 
         cap.release()
         print(f"成功辨識出 {saved_count} 幀影像")
