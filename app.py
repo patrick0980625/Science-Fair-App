@@ -1,10 +1,14 @@
+import os
+import torch
+import gc
+import shutil
+import zipfile
+torch.set_num_threads(1)
+
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from core.detect import BladeAnalyzer
-import shutil
-import os
-import zipfile
 
 app = FastAPI()
 
@@ -23,7 +27,14 @@ app.add_middleware(
     expose_headers=["Content-Disposition"]
 )
 
-analyzer = BladeAnalyzer()
+_analyzer_instance = None
+
+def get_analyzer() -> BladeAnalyzer:
+    global _analyzer_instance
+    if _analyzer_instance is None:
+        print("開始初始化與加載")
+        _analyzer_instance = BladeAnalyzer()
+    return _analyzer_instance
 
 class VideoProcessor:
     def __init__(self, video_filename: str):
@@ -75,8 +86,11 @@ async def process_video(file: UploadFile = File(...)):
     processor = VideoProcessor(video_filename=file.filename)
 
     try:
+        current_analyzer = getAnalyzer()
         processor.save_uploaded_file(file)
-        save_count = processor.run_algorithm()
+        with torch.no_grad():
+            save_count = processor.run_algorithm()
+
         if save_count == 0:
             raise HTTPException(status_code=422, detail="Fail to recognize blades match angle")
 
@@ -89,9 +103,8 @@ async def process_video(file: UploadFile = File(...)):
         )
     except HTTPException:
         raise
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
-
     finally:
         processor.cleanup()
+        gc.collect()
